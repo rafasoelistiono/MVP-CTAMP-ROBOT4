@@ -1,0 +1,55 @@
+scene:
+  scene_id: kitchen_pddlstream
+  variant: kitchen
+table:
+  x_range: [-0.85, 0.85]
+  y_range: [-1.10, 0.90]
+  z_top: 0.80
+  goal_center: [-0.25, -0.70, 0.84]
+  goal_area_size_xy: [0.65, 0.25]
+geometry:
+  cube_size_xyz: [0.052, 0.052, 0.052]
+robot:
+  id: panda_left
+  reach_min_xy: 0.25
+  reach_max_xy: 1.50
+  base_xy: [-0.42, -0.08]
+  base_z: 0.88
+  physical_start_qpos: [-1.251489, 1.391494, 1.007269, -1.429392, -1.832880, 2.695749, 2.102807]
+  capabilities: [pick, place]
+objects:
+  - {id: radish, class: food, color: purple, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [-0.10, 0.30, 0.826]}
+  - {id: egg, class: food, color: blue, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.02, 0.30, 0.826]}
+  - {id: bacon, class: food, color: red, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.14, 0.30, 0.826]}
+  - {id: chicken, class: food, color: orange, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [-0.10, 0.44, 0.826]}
+  - {id: celery, class: food, color: green, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.02, 0.44, 0.826]}
+  - {id: apple, class: food, color: yellow, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.14, 0.44, 0.826]}
+obstacles:
+  - {id: sink, kind: surface, pose: [-0.34, -0.72, 0.815], size: [0.20, 0.18, 0.03], support_surface: true}
+  - {id: stove, kind: surface, pose: [-0.06, -0.72, 0.815], size: [0.20, 0.18, 0.03], support_surface: true}
+task:
+  name: clean_and_cook
+  target_objects: [radish, egg, bacon, chicken, celery, apple]
+  preserve_order: false
+constraints:
+  preserve_obstacles: true
+  max_retries_per_object: 2
+  allowed_predicates: [at-pose, grasped, empty, cleaned, cooked]
+grouped_tidy:
+  enabled: true
+  require_ordered: true
+  slot_prefix: pddlstream
+  axis: z
+  spacing: 0.08
+  row_spacing: 0.10
+tidy_groups: []
+physical_execution:
+  enabled: true
+  completion_policy: strict
+  minimum_completion_ratio: 1.0
+  cube_mass: 0.08
+  cube_friction: [2.5, 1.0, 0.5]
+  table_friction: [1.0, 0.01, 0.001]
+  grip_target_width: 0.040
+kitchen:
+  initial_food_xy: [[-0.12, 0.30], [0.00, 0.30], [0.12, 0.30], [-0.12, 0.44], [0.00, 0.44], [0.12, 0.44]]

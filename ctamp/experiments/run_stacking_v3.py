@@ -1,8 +1,11 @@
-"""CTAMP v3 stacking runner.
+"""Deprecated custom-search CTAMP v3 stacking runner.
 
 V3 keeps v1/v2 runnable and adds a real Algorithm-1-shaped pass before
 execution: build TMM, run A*, motion-plan edges during expansion, confirm the
 candidate path, then hand the confirmed stacking order to the v2 executor.
+
+Use :mod:`ctamp.experiments.run_pddlstream` for benchmark planning. This module
+remains runnable as the custom TMM/A* reference path.
 """
 
 from __future__ import annotations
@@ -79,7 +82,7 @@ class V3LearningSample:
 
 
 class DewantoEdgeCost:
-    """Dewanto-style edge cost with normalized result and process components."""
+    """Deprecated custom-search edge cost retained for the v3 reference path."""
 
     def __init__(self, config: DewantoCostConfig | None = None) -> None:
         self.config = config or DewantoCostConfig()
@@ -130,7 +133,7 @@ class DewantoEdgeCost:
 
 
 class OnlineMeanRemainingCost(TMMHeuristic):
-    """Tiny online heuristic: remaining unit steps times learned mean edge cost."""
+    """Deprecated online heuristic retained for the v3 reference path."""
 
     def __init__(self, initial_mean: float = 1.0) -> None:
         self.graph: TaskMotionMultigraph | None = None
@@ -171,7 +174,7 @@ class OnlineMeanRemainingCost(TMMHeuristic):
 
 
 class StackingV3MotionVisitor(SearchVisitor):
-    """Plan TMM edges during expansion, low-dimensional probe first."""
+    """Deprecated motion visitor retained for the v3 reference path."""
 
     def __init__(
         self,

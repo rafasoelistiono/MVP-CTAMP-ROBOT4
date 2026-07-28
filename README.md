@@ -47,6 +47,47 @@ After installation, the equivalent entry point is `ctamp-run-stacking-v3`.
 
 The previous stacking path remains callable with `python3 -m cli.run_stacking_v2` or `ctamp-run-stacking-v2`.
 
+## PDDLStream Benchmark Arm
+
+PDDLStream is the symbolic front-end for seeded Blocksworld and Kitchen challenges. It samples grasps, placements, IK configurations, and collision-free transit trajectories through wrappers around `PandaIKSolver`, `MotionProbe`, and `plan_joint_rrt`; accepted placement actions are then executed by the unchanged `run_scene_v2` executor.
+
+Initialize and build the recursive dependency once:
+
+```bash
+git submodule update --init --recursive
+python3 third_party/pddlstream/downward/build.py
+```
+
+Run seeded three-object dry runs without launching MuJoCo:
+
+```bash
+python3 -m cli.run_pddlstream \
+  --domain blocksworld \
+  --config configs/scenes/blocksworld_challenge.yaml \
+  --output runs/blocksworld_pddlstream \
+  --num-objects 3 \
+  --seed 0 \
+  --dry-run
+
+python3 -m cli.run_pddlstream \
+  --domain kitchen \
+  --config configs/scenes/kitchen_challenge.yaml \
+  --output runs/kitchen_pddlstream \
+  --num-objects 3 \
+  --seed 0 \
+  --dry-run
+```
+
+Remove `--dry-run` for Panda/MuJoCo planning and execution. Each generated instance records `planning_time_seconds`, stream evaluation/sample/failure counts, and `plan_length` in `metrics.json`. `--num-objects` supports the literature sweep from 3 through 6; `--seed` selects a procedural instance. Editable source checkouts also expose `ctamp-run-pddlstream`; `--config` remains required because challenge YAMLs and the recursive PDDLStream checkout are not wheel resources.
+
+Blocksworld uses the canonical four actions from PDDLStream's bundled example with stream preconditions. Kitchen retains the bundled example's gripper/pose/grasp/pick/place vocabulary and adds `Cleaned`, `Cooked`, `clean`, and `cook`. Kitchen emits one ordered `placement_sequence`; `run_scene_v2` executes the complete sink-to-stove sequence in one MuJoCo backend and one viewer, so each food remains in the same simulated world between placements. Blocksworld retains per-placement execution phases so measured support offsets can be propagated into later stack targets. Stream trajectories validate home-to-pick, pick-to-place, and place-to-home candidates but are not injected into `run_scene_v2`, whose executor replans physical motion.
+
+PDDLStream's shipped fluent-stream compiler cannot certify outputs later stored in action effects. Source grasp poses and Blocksworld support-relative placements are therefore state-bound, while collision checks for other movable objects use the stream-generation scene snapshot. Every placement is revalidated by Panda IK/RRT and MuJoCo execution; no failed stream or execution phase falls back to TMM search. `run_scene_v2` still computes its legacy post-hoc linear TMM success bookkeeping, but that pass does not choose object order or replace failed motion.
+
+`run_stacking_v3` and its `TMMAStar`, `DewantoEdgeCost`, `OnlineMeanRemainingCost`, and `StackingV3MotionVisitor` path are deprecated for benchmark use but remain callable as the custom-search reference.
+
+Related-work note: Kwon and Kim (2026), "Kinodynamic Task and Motion Planning using VLM-guided and Interleaved Sampling," already compare PDDLStream and LLM³ on Blocksworld/Kitchen. Benchmark-paper framing must cite and distinguish that comparison, particularly its reported Kitchen scaling failures; this repository adds neither citation metadata nor claims of novelty.
+
 ## End-to-End Flow
 
 ```mermaid

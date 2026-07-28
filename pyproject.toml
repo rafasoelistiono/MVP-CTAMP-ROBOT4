@@ -31,6 +31,7 @@ ctamp-run = "cli.run_simulation:cli"
 ctamp-run-v2 = "cli.run_simulation_v2:cli"
 ctamp-run-stacking-v2 = "cli.run_stacking_v2:cli"
 ctamp-run-stacking-v3 = "cli.run_stacking_v3:cli"
+ctamp-run-pddlstream = "cli.run_pddlstream:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -41,6 +42,9 @@ include = [
 ]
 exclude = ["tests*"]
 
+[tool.setuptools.package-data]
+"ctamp.pddlstream" = ["domains/*.pddl"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra -m 'not simulation'"
@@ -48,6 +52,9 @@ pythonpath = ["."]
 markers = [
   "simulation: headless MuJoCo, Pinocchio, and OMPL integration tests",
 ]
+
+[tool.ruff]
+extend-exclude = ["third_party"]
 
 [tool.ruff.lint.per-file-ignores]
 "ctamp/**/__init__.py" = ["E402", "F401"]

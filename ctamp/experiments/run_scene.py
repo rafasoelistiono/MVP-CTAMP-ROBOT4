@@ -14,6 +14,7 @@ import numpy as np
 from ..motion_planning.mujoco import MuJoCoMotionPlanner
 from ..search.tmm_astar import TMMAStar
 from ..simulation import (
+    GoalSlot,
     MuJoCoBackend,
     MuJoCoSceneBuilder,
     PandaIKSolver,
@@ -373,9 +374,29 @@ def run(
                 collision_count += 1
         return execution, collision_count
 
-    target_objects = list(config["task"]["target_objects"])
+    placement_sequence = list(config["task"].get("placement_sequence", []))
+    sequence_slots: list[GoalSlot] = []
+    if placement_sequence:
+        preserve_order = True
+        for index, placement in enumerate(placement_sequence):
+            object_id = str(placement["object_id"])
+            if object_id not in objects:
+                raise ValueError(f"unknown placement-sequence object: {object_id}")
+            sequence_slots.append(
+                GoalSlot(
+                    name=str(placement.get("slot_name", f"sequence_{index:03d}")),
+                    group_id="placement_sequence",
+                    color="mixed",
+                    object_id=object_id,
+                    position=tuple(float(v) for v in placement["target_pose"]),
+                )
+            )
+        target_objects = [slot.object_id for slot in sequence_slots]
+    else:
+        target_objects = list(config["task"]["target_objects"])
     if max_objects is not None:
         target_objects = target_objects[:max_objects]
+        sequence_slots = sequence_slots[:max_objects]
 
     def _next_object(pending: list[str]) -> str:
         if preserve_order:
@@ -426,11 +447,22 @@ def run(
 
     pending_objects = list(target_objects)
     attempted_objects = []
+    sequence_index = 0
     while pending_objects:
-        object_id = _next_object(pending_objects)
-        pending_objects.remove(object_id)
-        attempted_objects.append(object_id)
-        obj, slot = objects[object_id], slots[object_id]
+        if sequence_slots:
+            object_id = pending_objects.pop(0)
+            slot = sequence_slots[sequence_index]
+            attempt_id = f"{object_id}__step_{sequence_index:03d}"
+            sequence_index += 1
+        else:
+            object_id = _next_object(pending_objects)
+            pending_objects.remove(object_id)
+            slot = slots[object_id]
+            attempt_id = object_id
+        attempted_objects.append(attempt_id)
+        obj = objects[object_id]
+        if sequence_slots:
+            obj["pose"] = backend.get_body_pose(f"cube_{object_id}")[:3]
         arm_at_home = True
         if physics_executor is not None and physical_home_qpos is not None:
             if not _move_arm_to_safe_pose():
@@ -453,7 +485,7 @@ def run(
         collision_failures += transfer_failures
         retries_used += retries
         route = _route_type(motion)
-        motions[object_id] = motion
+        motions[attempt_id] = motion
         aware_corridor_routes += int(route != "direct")
         execution = _ObjectExecution()
         reach_ok = _object_reach_ok(config, obj, start)
@@ -533,7 +565,7 @@ def run(
         "planner_backend": "mujoco",
         "robot_model_status": builder.panda_asset.status,
         "number_of_objects": len(objects),
-        "number_of_slots": len(slots),
+        "number_of_slots": len(sequence_slots) if sequence_slots else len(slots),
         "number_of_obstacles": len(config["obstacles"]),
         "tmm_vertices": tmm.vertex_count,
         "tmm_edges": tmm.edge_count,
@@ -559,7 +591,7 @@ def run(
         "panda_ik_collision_failures": ik_collision_failures,
         "grasp_styles": grasp_styles,
         "challenge_ablation": {
-            "segments_evaluated": len(objects) * 2,
+            "segments_evaluated": len(target_objects) * 2,
             "direct_only_blocked_segments": direct_only_failures,
             "obstacle_aware_failed_segments": sum(not x["success"] for x in per_object),
             "obstacle_aware_corridor_routes": aware_corridor_routes,
@@ -582,10 +614,20 @@ def run(
         {
             "scene_id": config["scene"]["scene_id"],
             "objects": list(objects),
-            "slots": {
-                oid: {"name": s.name, "position": s.position}
-                for oid, s in slots.items()
-            },
+            "slots": (
+                {
+                    slot.name: {
+                        "object_id": slot.object_id,
+                        "position": slot.position,
+                    }
+                    for slot in sequence_slots
+                }
+                if sequence_slots
+                else {
+                    oid: {"name": s.name, "position": s.position}
+                    for oid, s in slots.items()
+                }
+            ),
             "obstacles": config["obstacles"],
             "robot_model_status": builder.panda_asset.status,
         },
@@ -595,9 +637,9 @@ def run(
 1. **Before integration:** No. The existing code had no MuJoCo backend or scene loader, and its exhaustive symbolic planner is intractable for 12 objects (`12! * 2^12` branches).
 2. **After integration:** Partial. The ordered CTAMP adapter found a symbolic/geometric plan for all {len(objects)} objects and synchronized final cube poses into a stepped MuJoCo scene.
 3. **Robot model:** `{builder.panda_asset.status}`. Seven-joint Panda IK and joint-space collision paths were {"validated" if real_panda and ik_failures == 0 else "not fully validated"}.
-4. **Wall behavior:** The inflated wall blocked {direct_only_failures} of {len(objects) * 2} direct transit/transfer segments.
+4. **Wall behavior:** The inflated wall blocked {direct_only_failures} of {len(target_objects) * 2} direct transit/transfer segments.
 5. **Side corridors:** The obstacle-aware pipeline used {aware_corridor_routes} corridor routes and left {sum(not x["success"] for x in per_object)} objects unresolved.
-6. **Slots:** All {len(slots)} cubes received ordered, color-correct, table-valid slots.
+6. **Slots:** All {len(sequence_slots) if sequence_slots else len(slots)} placements received ordered, table-valid targets.
 7. **Reach:** All object starts and slots satisfy configured radial reach limits.
 8. **Impossible objects:** None under the 2-D probe. Full physical feasibility remains unknown because Panda IK and joint/link collision checking are absent.
 9. **Necessary changes:** Optional backend, scene builder/observer, Panda asset detection and proxy, ordered slot generator, obstacle-aware probe, motion adapter, and deterministic scene runner.

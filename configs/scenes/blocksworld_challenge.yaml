@@ -1,0 +1,56 @@
+scene:
+  scene_id: blocksworld_pddlstream
+  variant: blocksworld
+table:
+  x_range: [-0.85, 0.85]
+  y_range: [-1.10, 0.90]
+  z_top: 0.80
+  goal_center: [-0.30, -0.68, 0.83]
+  goal_area_size_xy: [0.70, 0.30]
+geometry:
+  cube_size_xyz: [0.058, 0.058, 0.058]
+robot:
+  id: panda_left
+  reach_min_xy: 0.25
+  reach_max_xy: 1.50
+  base_xy: [-0.42, -0.08]
+  base_z: 0.88
+  physical_start_qpos: [-1.251489, 1.391494, 1.007269, -1.429392, -1.832880, 2.695749, 2.102807]
+  capabilities: [pick, place]
+objects:
+  - {id: c1, class: cube, color: purple, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [-0.15, 0.28, 0.829]}
+  - {id: c2, class: cube, color: blue, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [0.00, 0.28, 0.829]}
+  - {id: c3, class: cube, color: green, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [0.15, 0.28, 0.829]}
+  - {id: c4, class: cube, color: yellow, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [-0.15, 0.42, 0.829]}
+  - {id: c5, class: cube, color: orange, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [0.00, 0.42, 0.829]}
+  - {id: c6, class: cube, color: red, size_xyz: [0.058, 0.058, 0.058], grip_target_width: 0.044, pose: [0.15, 0.42, 0.829]}
+obstacles: []
+task:
+  name: blocksworld
+  target_objects: [c1, c2, c3, c4, c5, c6]
+  preserve_order: false
+constraints:
+  preserve_obstacles: true
+  max_retries_per_object: 2
+  allowed_predicates: [clear, on, on-table, holding, arm-empty]
+grouped_tidy:
+  enabled: true
+  require_ordered: true
+  slot_prefix: pddlstream
+  axis: z
+  spacing: 0.08
+  row_spacing: 0.10
+tidy_groups: []
+physical_execution:
+  enabled: true
+  completion_policy: strict
+  minimum_completion_ratio: 1.0
+  cube_mass: 0.08
+  cube_friction: [2.5, 1.0, 0.5]
+  table_friction: [1.0, 0.01, 0.001]
+  grip_target_width: 0.044
+blocksworld:
+  initial_stack_origins: [[-0.12, 0.30], [0.06, 0.32], [0.24, 0.30]]
+  goal_stack_origins: [[-0.36, -0.72], [-0.18, -0.72], [0.00, -0.72]]
+  temporary_table_origin: [0.12, -0.48]
+  temporary_table_spacing: 0.11
