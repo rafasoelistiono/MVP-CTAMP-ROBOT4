@@ -23,6 +23,39 @@ def test_kitchen_generator_is_seeded_for_literature_sizes():
         assert len(first.object_ids) == num_objects
 
 
+def test_kitchen_targets_use_configured_surface_grid():
+    config = yaml.safe_load(CONFIG.read_text())
+    problem = generate_problem(config, num_objects=6, seed=0)
+    offsets = {tuple(offset) for offset in config["kitchen"]["surface_offsets"]}
+    assert offsets == {
+        (-0.08, -0.045),
+        (0.0, -0.045),
+        (0.08, -0.045),
+        (-0.08, 0.045),
+        (0.0, 0.045),
+        (0.08, 0.045),
+    }
+
+    for surface_id in ("sink", "stove"):
+        surface = next(
+            obstacle
+            for obstacle in config["obstacles"]
+            if obstacle["id"] == surface_id
+        )
+        generated_offsets = {
+            (
+                round(problem.placement_poses[(object_id, surface_id)][0] - surface["pose"][0], 6),
+                round(problem.placement_poses[(object_id, surface_id)][1] - surface["pose"][1], 6),
+            )
+            for object_id in problem.object_ids
+        }
+        assert generated_offsets == offsets
+        half_width, half_depth = (value / 2 for value in surface["size"][:2])
+        cube_half = config["geometry"]["cube_size_xyz"][0] / 2
+        assert max(abs(x) for x, _ in generated_offsets) + cube_half < half_width
+        assert max(abs(y) for _, y in generated_offsets) + cube_half < half_depth
+
+
 def test_kitchen_builds_one_ordered_continuous_sequence():
     config = yaml.safe_load(CONFIG.read_text())
     problem = generate_problem(config, num_objects=1, seed=1)
@@ -62,6 +95,9 @@ def test_kitchen_dry_run_cleans_before_cooking_and_samples_streams(tmp_path):
     )
 
     assert metrics["solution_found"] is True
+    assert metrics["robot"]["initial_end_effector_xyz"] == pytest.approx(
+        [0.286161791, -0.419245558, 0.937935707], abs=1e-6
+    )
     assert metrics["planning"]["plan_length"] == 6
     assert metrics["planning"]["planning_time_seconds"] >= 0
     assert metrics["planning"]["stream"]["evaluations"] > 0

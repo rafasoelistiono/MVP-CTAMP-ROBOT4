@@ -12,9 +12,10 @@ geometry:
 robot:
   id: panda_left
   reach_min_xy: 0.25
-  reach_max_xy: 1.50
+  reach_max_xy: 0.82  # Empirical Panda IK envelope; all benchmark targets remain inside.
   base_xy: [-0.42, -0.08]
   base_z: 0.88
+  mount: {type: pedestal, radius: 0.10}  # Supports the base across the 8 cm table gap.
   physical_start_qpos: [-1.251489, 1.391494, 1.007269, -1.429392, -1.832880, 2.695749, 2.102807]
   capabilities: [pick, place]
 objects:
@@ -45,6 +46,7 @@ physical_execution:
   enabled: true
   completion_policy: strict
   minimum_completion_ratio: 1.0
+  placement_success_tolerance_xy: 0.015  # Smaller than the 58 mm cube footprint.
   cube_mass: 0.08
   cube_friction: [2.5, 1.0, 0.5]
   table_friction: [1.0, 0.01, 0.001]
@@ -52,5 +54,5 @@ physical_execution:
 blocksworld:
   initial_stack_origins: [[-0.12, 0.30], [0.06, 0.32], [0.24, 0.30]]
   goal_stack_origins: [[-0.36, -0.72], [-0.18, -0.72], [0.00, -0.72]]
-  temporary_table_origin: [0.12, -0.48]
+  temporary_table_origin: [-0.32, -0.48]  # Keeps all six staging slots inside tested IK reach.
   temporary_table_spacing: 0.11

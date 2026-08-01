@@ -1,7 +1,0 @@
-{
-  "segments_evaluated": 24,
-  "direct_only_blocked_segments": 9,
-  "obstacle_aware_failed_segments": 6,
-  "obstacle_aware_corridor_routes": 9,
-  "interpretation": "pipeline effect is measured on transit + transfer XY segments"
-}

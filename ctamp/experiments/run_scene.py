@@ -30,6 +30,7 @@ from .scene_helpers import (
     dense_xyz as _dense_xyz,
     object_reach_ok as _object_reach_ok,
     per_object_result as _per_object_result,
+    placement_within_tolerance as _placement_within_tolerance,
     plan_action as _plan_action,
     probe_transfer as _probe_transfer,
     route_type as _route_type,
@@ -288,8 +289,8 @@ def run(
             execution.placement_error = (
                 np.asarray(final_position) - np.asarray(slot.position)
             ).tolist()
-            execution.physical_tidy_success = (
-                float(np.linalg.norm(execution.placement_error[:2])) <= 0.07
+            execution.physical_tidy_success = _placement_within_tolerance(
+                execution.placement_error, config
             )
             execution.ik_success = execution.physical_tidy_success
             execution.ik_reason = (

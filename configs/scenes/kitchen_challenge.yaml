@@ -12,9 +12,10 @@ geometry:
 robot:
   id: panda_left
   reach_min_xy: 0.25
-  reach_max_xy: 1.50
+  reach_max_xy: 0.82  # Empirical Panda IK envelope; all benchmark targets remain inside.
   base_xy: [-0.42, -0.08]
   base_z: 0.88
+  mount: {type: pedestal, radius: 0.10}  # Supports the base across the 8 cm table gap.
   physical_start_qpos: [-1.251489, 1.391494, 1.007269, -1.429392, -1.832880, 2.695749, 2.102807]
   capabilities: [pick, place]
 objects:
@@ -25,8 +26,8 @@ objects:
   - {id: celery, class: food, color: green, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.02, 0.44, 0.826]}
   - {id: apple, class: food, color: yellow, size_xyz: [0.052, 0.052, 0.052], grip_target_width: 0.040, pose: [0.14, 0.44, 0.826]}
 obstacles:
-  - {id: sink, kind: surface, pose: [-0.34, -0.72, 0.815], size: [0.20, 0.18, 0.03], support_surface: true}
-  - {id: stove, kind: surface, pose: [-0.06, -0.72, 0.815], size: [0.20, 0.18, 0.03], support_surface: true}
+  - {id: sink, kind: surface, pose: [-0.40, -0.72, 0.815], size: [0.26, 0.20, 0.03], support_surface: true, blocks_motion_probe: false}
+  - {id: stove, kind: surface, pose: [-0.10, -0.72, 0.815], size: [0.26, 0.20, 0.03], support_surface: true, blocks_motion_probe: false}
 task:
   name: clean_and_cook
   target_objects: [radish, egg, bacon, chicken, celery, apple]
@@ -47,9 +48,12 @@ physical_execution:
   enabled: true
   completion_policy: strict
   minimum_completion_ratio: 1.0
+  placement_success_tolerance_xy: 0.015  # Prevents adjacent Kitchen slots from counting as success.
   cube_mass: 0.08
   cube_friction: [2.5, 1.0, 0.5]
   table_friction: [1.0, 0.01, 0.001]
   grip_target_width: 0.040
 kitchen:
   initial_food_xy: [[-0.12, 0.30], [0.00, 0.30], [0.12, 0.30], [-0.12, 0.44], [0.00, 0.44], [0.12, 0.44]]
+  # 80 x 90 mm center spacing leaves 28 x 38 mm clear gaps between food cubes.
+  surface_offsets: [[-0.08, -0.045], [0.00, -0.045], [0.08, -0.045], [-0.08, 0.045], [0.00, 0.045], [0.08, 0.045]]

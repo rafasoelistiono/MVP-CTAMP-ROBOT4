@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -41,6 +43,24 @@ class PandaIKSolver:
     """Solve gripper-site position IK while respecting Panda joint limits."""
 
     JOINT_NAMES = tuple(f"joint{i}" for i in range(1, 8))
+
+    @classmethod
+    def from_scene_config(
+        cls, config: dict[str, Any], project_root: str | Path
+    ) -> PandaIKSolver:
+        from .mujoco_scene_builder import MuJoCoSceneBuilder
+
+        builder = MuJoCoSceneBuilder(config, project_root)
+        if builder.panda_asset.status != "real_panda_asset":
+            raise RuntimeError("Panda scene requires real Panda MJCF assets")
+        backend = MuJoCoBackend()
+        backend.load_model(xml_string=builder.build_xml())
+        solver = cls(backend)
+        home = np.asarray(config["robot"]["physical_start_qpos"], dtype=float)
+        if home.shape != (7,):
+            raise ValueError("robot.physical_start_qpos must contain seven values")
+        solver.set_qpos(home)
+        return solver
 
     def __init__(
         self,

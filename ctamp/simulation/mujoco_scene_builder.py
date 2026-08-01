@@ -102,6 +102,7 @@ class MuJoCoSceneBuilder:
             rgba="0.55 0.45 0.35 1",
             friction=table_friction,
         )
+        self._add_robot_mount(world)
         if self.panda_asset.path is None:
             probe = ET.SubElement(
                 world, "body", name="ee_probe", pos="-0.15 -0.08 1.02"
@@ -178,6 +179,32 @@ class MuJoCoSceneBuilder:
                     solimp="0.95 0.99 0.001",
                 )
         return ET.tostring(root, encoding="unicode")
+
+    def _add_robot_mount(self, world: ET.Element) -> None:
+        robot = self.config["robot"]
+        mount = robot.get("mount")
+        if not mount:
+            return
+        if mount.get("type") != "pedestal":
+            raise ValueError("robot.mount.type must be 'pedestal'")
+        bottom = float(self.config["table"]["z_top"])
+        top = float(robot["base_z"])
+        if top <= bottom:
+            raise ValueError("pedestal requires robot.base_z above table.z_top")
+        radius = float(mount["radius"])
+        if radius <= 0:
+            raise ValueError("robot.mount.radius must be positive")
+        x, y = (float(value) for value in robot["base_xy"])
+        height = top - bottom
+        ET.SubElement(
+            world,
+            "geom",
+            name="panda_mount",
+            type="cylinder",
+            pos=f"{x} {y} {bottom + height / 2.0}",
+            size=f"{radius} {height / 2.0}",
+            rgba="0.25 0.25 0.28 1",
+        )
 
     def _add_panda_proxy(self, world: ET.Element) -> None:
         robot = self.config["robot"]

@@ -16,8 +16,6 @@ from ..pddlstream.problems.blocksworld_generator import generate_problem as gene
 from ..pddlstream.problems.kitchen_generator import generate_problem as generate_kitchen
 from ..pddlstream.solver import PDDLStreamResult, solve
 from ..pddlstream.streams import StreamContext
-from ..simulation.mujoco_backend import MuJoCoBackend
-from ..simulation.mujoco_scene_builder import MuJoCoSceneBuilder
 from ..simulation.panda_ik import PandaIKSolver
 from .run_scene_v2 import run as run_scene_v2
 
@@ -42,17 +40,10 @@ def _generate(
 
 def _planning_ik(
     problem: GeneratedProblem, project_root: Path, dry_run: bool
-) -> PandaIKSolver | None:
-    if dry_run:
-        return None
-    builder = MuJoCoSceneBuilder(problem.scene_config, project_root)
-    if builder.panda_asset.status != "real_panda_asset":
-        raise RuntimeError("PDDLStream execution requires real Panda MJCF assets")
-    backend = MuJoCoBackend()
-    backend.load_model(xml_string=builder.build_xml())
-    solver = PandaIKSolver(backend)
-    solver.set_qpos(tuple(problem.scene_config["robot"]["physical_start_qpos"]))
-    return solver
+) -> tuple[PandaIKSolver | None, tuple[float, float, float]]:
+    solver = PandaIKSolver.from_scene_config(problem.scene_config, project_root)
+    initial_ee_xyz = tuple(float(value) for value in solver.site_position())
+    return (None if dry_run else solver), initial_ee_xyz
 
 
 def _placement_config(
@@ -231,6 +222,7 @@ def _result_metrics(
     adapted: AdaptedPlan | None,
     dry_run: bool,
     execution: dict[str, Any] | None,
+    initial_ee_xyz: tuple[float, float, float],
 ) -> dict[str, Any]:
     symbolic_success = solved.success
     execution_success = execution is None or bool(execution["solution_found"])
@@ -239,6 +231,7 @@ def _result_metrics(
         "domain": problem.domain,
         "seed": problem.seed,
         "num_objects": len(problem.object_ids),
+        "robot": {"initial_end_effector_xyz": list(initial_ee_xyz)},
         "dry_run": dry_run,
         "symbolic_solution_found": symbolic_success,
         "solution_found": symbolic_success and execution_success,
@@ -270,7 +263,7 @@ def run(
     _write_yaml(output / "generated_scene.yaml", problem.scene_config)
     _write_json(output / "generated_problem.json", problem.metadata)
 
-    ik_solver = _planning_ik(problem, project_root, dry_run)
+    ik_solver, initial_ee_xyz = _planning_ik(problem, project_root, dry_run)
     stream_context = StreamContext(problem, ik_solver=ik_solver, dry_run=dry_run)
     solved = solve(
         problem,
@@ -310,6 +303,8 @@ def run(
                 problem, adapted, output, project_root, max_retries, viewer
             )
         )
-    metrics = _result_metrics(problem, solved, adapted, dry_run, execution)
+    metrics = _result_metrics(
+        problem, solved, adapted, dry_run, execution, initial_ee_xyz
+    )
     _write_json(output / "metrics.json", metrics)
     return metrics

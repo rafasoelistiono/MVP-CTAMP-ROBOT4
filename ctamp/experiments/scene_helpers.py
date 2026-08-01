@@ -33,9 +33,26 @@ GRASP_APPROACHES = {
     "side_neg_y": (0.0, 1.0, 0.0),
 }
 
+DEFAULT_PLACEMENT_SUCCESS_TOLERANCE_XY = 0.07
+
 
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+
+
+def placement_within_tolerance(error_xyz: Iterable[float], config: dict) -> bool:
+    error = tuple(float(value) for value in error_xyz)
+    if len(error) < 2:
+        raise ValueError("placement error must contain at least x and y")
+    tolerance = float(
+        config.get("physical_execution", {}).get(
+            "placement_success_tolerance_xy",
+            DEFAULT_PLACEMENT_SUCCESS_TOLERANCE_XY,
+        )
+    )
+    if tolerance < 0:
+        raise ValueError("placement_success_tolerance_xy must be non-negative")
+    return math.hypot(error[0], error[1]) <= tolerance
 
 
 def route_type(motion: object) -> str:

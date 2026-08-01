@@ -12,6 +12,7 @@ from ctamp.experiments.run_scene import (
     _plan_action,
     _probe_transfer,
 )
+from ctamp.experiments.scene_helpers import placement_within_tolerance
 from ctamp.experiments.run_stacking_v2 import build_phase_configs
 from ctamp.learning.heuristic_models import OnlineSGDModel
 from ctamp.planning.symbolic import PlanningProblem, SymbolicTaskPlanner
@@ -141,6 +142,17 @@ def test_completion_status_supports_strict_and_best_effort_policy():
 
     assert strict == (False, 1, 0.5, "strict", False)
     assert best_effort == (False, 1, 0.5, "best_effort", True)
+
+
+def test_placement_success_uses_scene_tolerance():
+    config = {
+        "physical_execution": {"placement_success_tolerance_xy": 0.015}
+    }
+
+    assert placement_within_tolerance([0.009, 0.012, 0.2], config) is True
+    assert placement_within_tolerance([0.014999, 0.0, 0.0], config) is True
+    assert placement_within_tolerance([0.015001, 0.0, 0.0], config) is False
+    assert placement_within_tolerance([0.04, 0.0, 0.0], config) is False
 
 
 def test_probe_transfer_reports_retries_and_failures():

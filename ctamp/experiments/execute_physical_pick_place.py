@@ -18,6 +18,7 @@ from ..simulation import (
     generate_tidy_slots,
     load_scene_config,
 )
+from .scene_helpers import placement_within_tolerance
 
 
 def main() -> int:
@@ -201,7 +202,7 @@ def main() -> int:
         executor.settle(steps=180)
         final_position = physics_backend.get_body_pose(f"cube_{args.object}")[:3]
         error_xyz = np.asarray(final_position) - np.asarray(slot.position)
-        success = float(np.linalg.norm(error_xyz[:2])) <= 0.07
+        success = placement_within_tolerance(error_xyz, config)
         payload = {
             "object_id": args.object,
             "success": success,

@@ -123,7 +123,11 @@ class MotionProbe:
         self.base = tuple(robot["base_xy"])
         self.reach_min = float(robot["reach_min_xy"])
         self.reach_max = float(robot["reach_max_xy"])
-        self.rectangles = [self._inflated_rect(o) for o in config.get("obstacles", [])]
+        self.rectangles = [
+            self._inflated_rect(obstacle)
+            for obstacle in config.get("obstacles", [])
+            if obstacle.get("blocks_motion_probe", True)
+        ]
 
     def _inflated_rect(
         self, obstacle: dict[str, Any]

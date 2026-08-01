@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 from collections import Counter
 from collections.abc import Iterator
 from typing import AbstractSet, Any
@@ -29,13 +28,7 @@ class StreamContext:
         self.config = problem.scene_config
         self.ik_solver = ik_solver
         self.dry_run = dry_run
-        probe_config = copy.deepcopy(self.config)
-        probe_config["obstacles"] = [
-            obstacle
-            for obstacle in probe_config.get("obstacles", [])
-            if not obstacle.get("support_surface", False)
-        ]
-        self.probe = MotionProbe(probe_config)
+        self.probe = MotionProbe(self.config)
         self.home = tuple(float(v) for v in self.config["robot"]["physical_start_qpos"])
         self.objects = {obj["id"]: obj for obj in self.config["objects"]}
         self.evaluations: Counter[str] = Counter()

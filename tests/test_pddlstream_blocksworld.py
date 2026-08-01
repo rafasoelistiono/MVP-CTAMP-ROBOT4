@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,26 @@ def test_blocksworld_generator_is_seeded_for_literature_sizes():
         repeated = generate_problem(config, num_objects=num_objects, seed=11)
         assert first.metadata == repeated.metadata
         assert len(first.object_ids) == num_objects
+
+
+def test_blocksworld_temporary_row_stays_inside_configured_reach():
+    config = yaml.safe_load(CONFIG.read_text())
+    origin = config["blocksworld"]["temporary_table_origin"]
+    spacing = config["blocksworld"]["temporary_table_spacing"]
+    base = config["robot"]["base_xy"]
+    slots = [(origin[0] + index * spacing, origin[1]) for index in range(6)]
+
+    assert [(round(x, 2), y) for x, y in slots] == [
+        (-0.32, -0.48),
+        (-0.21, -0.48),
+        (-0.1, -0.48),
+        (0.01, -0.48),
+        (0.12, -0.48),
+        (0.23, -0.48),
+    ]
+    assert max(math.dist(base, slot) for slot in slots) < config["robot"][
+        "reach_max_xy"
+    ]
 
 
 def test_blocksworld_dry_run_searches_goal_order_and_samples_streams(tmp_path):
@@ -40,6 +61,9 @@ def test_blocksworld_dry_run_searches_goal_order_and_samples_streams(tmp_path):
     assert first["problem"]["goal_stacks_bottom_to_top"] != second["problem"][
         "goal_stacks_bottom_to_top"
     ]
+    assert first["robot"]["initial_end_effector_xyz"] == pytest.approx(
+        [0.286161791, -0.419245558, 0.937935707], abs=1e-6
+    )
     first_plan = json.loads((first_output / "pddlstream_plan.json").read_text())
     second_plan = json.loads((second_output / "pddlstream_plan.json").read_text())
     assert first_plan != second_plan

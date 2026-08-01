@@ -29,7 +29,10 @@ def generate_problem(
     rng.shuffle(positions)
     placements: dict[tuple[str, str], Pose] = {}
     initial_surfaces: dict[str, str] = {}
-    surface_offsets = [(-0.06, -0.035), (0.0, -0.035), (0.06, -0.035), (-0.06, 0.035), (0.0, 0.035), (0.06, 0.035)]
+    surface_offsets = [
+        tuple(float(value) for value in offset)
+        for offset in kitchen["surface_offsets"]
+    ]
     for index, obj in enumerate(selected):
         object_id = obj["id"]
         height = float(obj.get("size_xyz", config["geometry"]["cube_size_xyz"])[2])
